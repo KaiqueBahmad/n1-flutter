@@ -1,4 +1,4 @@
-class Storage {
+class AuthStorage {
   static final Map<String, String> _users = {};
 
   static void addUser(String username, String password) {

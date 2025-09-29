@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:n1/auth_provider.dart';
 import 'package:n1/home.dart';
-import 'package:n1/storage.dart';
+import 'package:n1/auth_storage.dart';
 import 'package:provider/provider.dart';
 import 'package:local_auth/local_auth.dart';
 
@@ -44,7 +44,7 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void _handleLogin(String username, String password) {
-    if (Storage.checkLogin(username, password)) {
+    if (AuthStorage.checkLogin(username, password)) {
       context.read<AuthProvider>().login(username);
       Navigator.pushReplacement(
         context,
@@ -56,10 +56,10 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void _handleRegister(String username, String password) {
-    if (Storage.userExists(username)) {
+    if (AuthStorage.userExists(username)) {
       showMessage('Usuário já existe');
     } else {
-      Storage.addUser(username, password);
+      AuthStorage.addUser(username, password);
       showMessage('Usuário cadastrado!');
       setState(() {
         view = ViewingAs.login;
@@ -75,12 +75,12 @@ class _LoginPageState extends State<LoginPage> {
       return;
     }
 
-    if (!Storage.userExists(username)) {
+    if (!AuthStorage.userExists(username)) {
       showMessage('Usuário não encontrado');
       return;
     }
 
-    Storage.updatePassword(username, newPassword);
+    AuthStorage.updatePassword(username, newPassword);
     showMessage('Senha alterada com sucesso!');
     setState(() {
       view = ViewingAs.login;
@@ -116,7 +116,6 @@ class _LoginPageState extends State<LoginPage> {
         showMessage('Autenticação falhou');
       }
     } catch (e) {
-      print(e);
       showMessage('Erro na autenticação: $e');
     }
   }
