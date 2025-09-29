@@ -3,6 +3,7 @@ import 'package:n1/auth_provider.dart';
 import 'package:n1/home.dart';
 import 'package:n1/storage.dart';
 import 'package:provider/provider.dart';
+import 'package:local_auth/local_auth.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
@@ -11,10 +12,14 @@ class LoginPage extends StatefulWidget {
   State<LoginPage> createState() => _LoginPageState();
 }
 
+enum ViewingAs { login, register, recover }
+
 class _LoginPageState extends State<LoginPage> {
-  bool isLogin = true;
+  ViewingAs view = ViewingAs.login;
   final usernameController = TextEditingController();
   final passwordController = TextEditingController();
+  final LocalAuthentication auth = LocalAuthentication();
+  bool biometryVerified = false;
 
   void handleSubmit() {
     final username = usernameController.text.trim();
@@ -25,35 +30,145 @@ class _LoginPageState extends State<LoginPage> {
       return;
     }
 
-    if (isLogin) {
-      if (Storage.checkLogin(username, password)) {
-        context.read<AuthProvider>().login(username);
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const Home()),
-        );
-      } else {
-        showMessage('Usuário ou senha incorretos');
-      }
-    } else {
-      Storage.userExists(username)
-          ? showMessage('Usuário já existe')
-          : createUser(username, password);
+    switch (view) {
+      case ViewingAs.login:
+        _handleLogin(username, password);
+        break;
+      case ViewingAs.register:
+        _handleRegister(username, password);
+        break;
+      case ViewingAs.recover:
+        _handleRecover(username, password);
+        break;
     }
   }
 
-  void createUser(String username, String password) {
-    Storage.addUser(username, password);
-    showMessage('Usuário cadastrado!');
+  void _handleLogin(String username, String password) {
+    if (Storage.checkLogin(username, password)) {
+      context.read<AuthProvider>().login(username);
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const Home()),
+      );
+    } else {
+      showMessage('Usuário ou senha incorretos');
+    }
+  }
+
+  void _handleRegister(String username, String password) {
+    if (Storage.userExists(username)) {
+      showMessage('Usuário já existe');
+    } else {
+      Storage.addUser(username, password);
+      showMessage('Usuário cadastrado!');
+      setState(() {
+        view = ViewingAs.login;
+        usernameController.clear();
+        passwordController.clear();
+      });
+    }
+  }
+
+  Future<void> _handleRecover(String username, String newPassword) async {
+    if (!biometryVerified) {
+      showMessage('Autenticação biométrica necessária');
+      return;
+    }
+
+    if (!Storage.userExists(username)) {
+      showMessage('Usuário não encontrado');
+      return;
+    }
+
+    Storage.updatePassword(username, newPassword);
+    showMessage('Senha alterada com sucesso!');
     setState(() {
-      isLogin = true;
+      view = ViewingAs.login;
+      biometryVerified = false;
       usernameController.clear();
       passwordController.clear();
     });
   }
 
+  Future<void> _authenticateBiometry() async {
+    try {
+      final bool canAuthenticateWithBiometrics = await auth.canCheckBiometrics;
+      final bool canAuthenticate =
+          canAuthenticateWithBiometrics || await auth.isDeviceSupported();
+
+      if (!canAuthenticate) {
+        showMessage('Biometria não disponível neste dispositivo');
+        return;
+      }
+
+      final bool didAuthenticate = await auth.authenticate(
+        localizedReason: 'Autentique-se para recuperar sua senha',
+        options: const AuthenticationOptions(
+          biometricOnly: false,
+          stickyAuth: true,
+        ),
+      );
+
+      if (didAuthenticate) {
+        setState(() => biometryVerified = true);
+        showMessage('Biometria verificada! Agora defina uma nova senha');
+      } else {
+        showMessage('Autenticação falhou');
+      }
+    } catch (e) {
+      print(e);
+      showMessage('Erro na autenticação: $e');
+    }
+  }
+
   void showMessage(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
+
+  String getTitle() {
+    switch (view) {
+      case ViewingAs.login:
+        return 'Bem-vindo!';
+      case ViewingAs.register:
+        return 'Criar Conta';
+      case ViewingAs.recover:
+        return 'Recuperar Senha';
+    }
+  }
+
+  String getButtonLabel() {
+    switch (view) {
+      case ViewingAs.login:
+        return 'Entrar';
+      case ViewingAs.register:
+        return 'Cadastrar';
+      case ViewingAs.recover:
+        return 'Alterar Senha';
+    }
+  }
+
+  String getToggleLabel() {
+    switch (view) {
+      case ViewingAs.login:
+        return 'Criar conta';
+      case ViewingAs.register:
+        return 'Já tenho conta';
+      case ViewingAs.recover:
+        return 'Voltar ao login';
+    }
+  }
+
+  void toggleView() {
+    setState(() {
+      if (view == ViewingAs.login) {
+        view = ViewingAs.register;
+      } else {
+        view = ViewingAs.login;
+      }
+      biometryVerified = false;
+      usernameController.clear();
+      passwordController.clear();
+    });
   }
 
   @override
@@ -66,55 +181,109 @@ class _LoginPageState extends State<LoginPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.lock_outline, size: 80, color: Colors.blue),
+              Icon(
+                view == ViewingAs.recover
+                    ? Icons.fingerprint
+                    : Icons.lock_outline,
+                size: 80,
+                color: Colors.blue,
+              ),
               const SizedBox(height: 40),
               Text(
-                isLogin ? 'Bem-vindo!' : 'Criar Conta',
+                getTitle(),
                 style: const TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
                 ),
               ),
               const SizedBox(height: 40),
-              TextField(
-                controller: usernameController,
-                decoration: InputDecoration(
-                  labelText: 'Usuário',
-                  prefixIcon: const Icon(Icons.person),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+              if (view == ViewingAs.recover && !biometryVerified)
+                Column(
+                  children: [
+                    const Text(
+                      'Primeiro, autentique-se com biometria',
+                      style: TextStyle(color: Colors.grey, fontSize: 16),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton.icon(
+                        onPressed: _authenticateBiometry,
+                        icon: const Icon(Icons.fingerprint),
+                        label: const Text('Autenticar com Biometria'),
+                        style: ElevatedButton.styleFrom(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 40),
+                  ],
+                ),
+              if (view != ViewingAs.recover || biometryVerified) ...[
+                TextField(
+                  controller: usernameController,
+                  decoration: InputDecoration(
+                    labelText: 'Usuário',
+                    prefixIcon: const Icon(Icons.person),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: passwordController,
-                obscureText: true,
-                decoration: InputDecoration(
-                  labelText: 'Senha',
-                  prefixIcon: const Icon(Icons.lock),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: passwordController,
+                  obscureText: true,
+                  decoration: InputDecoration(
+                    labelText: view == ViewingAs.recover
+                        ? 'Nova Senha'
+                        : 'Senha',
+                    prefixIcon: const Icon(Icons.lock),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: FilledButton(
-                  onPressed: handleSubmit,
-                  child: Text(isLogin ? 'Entrar' : 'Cadastrar'),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: FilledButton(
+                    onPressed: handleSubmit,
+                    style: FilledButton.styleFrom(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Text(getButtonLabel()),
+                  ),
                 ),
-              ),
+              ],
               const SizedBox(height: 16),
-              TextButton(
-                onPressed: () => setState(() {
-                  isLogin = !isLogin;
-                  usernameController.clear();
-                  passwordController.clear();
-                }),
-                child: Text(isLogin ? 'Criar conta' : 'Já tenho conta'),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  TextButton(
+                    onPressed: toggleView,
+                    child: Text(getToggleLabel()),
+                  ),
+                  if (view == ViewingAs.login) ...[
+                    const Text(' | ', style: TextStyle(color: Colors.grey)),
+                    TextButton(
+                      onPressed: () => setState(() {
+                        view = ViewingAs.recover;
+                        biometryVerified = false;
+                        usernameController.clear();
+                        passwordController.clear();
+                      }),
+                      child: const Text('Esqueci a senha'),
+                    ),
+                  ],
+                ],
               ),
             ],
           ),

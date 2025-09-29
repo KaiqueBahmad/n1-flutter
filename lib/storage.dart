@@ -16,4 +16,10 @@ class Storage {
   static bool userExists(String username) {
     return _users.containsKey(username);
   }
+
+  static void updatePassword(String username, String newPassword) {
+    if (userExists(username)) {
+      _users[username] = newPassword;
+    }
+  }
 }
