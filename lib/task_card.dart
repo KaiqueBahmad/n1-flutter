@@ -1,0 +1,161 @@
+import 'package:flutter/material.dart';
+import 'package:n1/task_storage.dart';
+import 'package:intl/intl.dart';
+
+class TaskCard extends StatelessWidget {
+  final Task task;
+  final VoidCallback onToggleComplete;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  const TaskCard({
+    super.key,
+    required this.task,
+    required this.onToggleComplete,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final category = TaskStorage.getCategoryById(task.categoryId, context);
+    final isOverdue =
+        task.dueDate != null &&
+        task.dueDate!.isBefore(DateTime.now()) &&
+        !task.isCompleted;
+
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+      elevation: task.isCompleted ? 1 : 2,
+      child: ListTile(
+        leading: Checkbox(
+          value: task.isCompleted,
+          onChanged: (value) => onToggleComplete(),
+        ),
+        title: Text(
+          task.title,
+          style: TextStyle(
+            decoration: task.isCompleted ? TextDecoration.lineThrough : null,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (task.description.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(
+                task.description,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: Colors.grey[600], fontSize: 13),
+              ),
+            ],
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              children: [
+                if (category != null)
+                  _buildChip(
+                    icon: category.iconData,
+                    label: category.name,
+                    color: category.color,
+                  ),
+                _buildChip(
+                  icon: _getPriorityIcon(task.priority),
+                  label: _getPriorityLabel(task.priority),
+                  color: _getPriorityColor(task.priority),
+                ),
+                if (task.dueDate != null)
+                  _buildChip(
+                    icon: Icons.calendar_today,
+                    label: DateFormat('dd/MM/yy').format(task.dueDate!),
+                    color: isOverdue ? Colors.red : Colors.blue,
+                  ),
+              ],
+            ),
+          ],
+        ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.edit, size: 20),
+              onPressed: onEdit,
+              tooltip: 'Editar',
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete, size: 20),
+              onPressed: onDelete,
+              tooltip: 'Excluir',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildChip({
+    required IconData icon,
+    required String label,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.w600,
+              fontSize: 12,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _getPriorityColor(Priority priority) {
+    switch (priority) {
+      case Priority.low:
+        return Colors.green;
+      case Priority.normal:
+        return Colors.orange;
+      case Priority.high:
+        return Colors.red;
+    }
+  }
+
+  IconData _getPriorityIcon(Priority priority) {
+    switch (priority) {
+      case Priority.low:
+        return Icons.arrow_downward;
+      case Priority.normal:
+        return Icons.remove;
+      case Priority.high:
+        return Icons.arrow_upward;
+    }
+  }
+
+  String _getPriorityLabel(Priority priority) {
+    switch (priority) {
+      case Priority.low:
+        return 'Baixa';
+      case Priority.normal:
+        return 'Normal';
+      case Priority.high:
+        return 'Alta';
+    }
+  }
+}

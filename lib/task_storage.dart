@@ -197,16 +197,4 @@ class TaskStorage {
       context,
     ).where((task) => task.priority == priority).toList();
   }
-
-  static List<Task> getOverdueTasks(BuildContext context) {
-    final now = DateTime.now();
-    return _getUserTasks(context)
-        .where(
-          (task) =>
-              task.dueDate != null &&
-              task.dueDate!.isBefore(now) &&
-              !task.isCompleted,
-        )
-        .toList();
-  }
 }

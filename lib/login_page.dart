@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:n1/auth_provider.dart';
 import 'package:n1/home.dart';
 import 'package:n1/auth_storage.dart';
+import 'package:n1/task_storage.dart';
 import 'package:provider/provider.dart';
 import 'package:local_auth/local_auth.dart';
 
@@ -46,6 +47,35 @@ class _LoginPageState extends State<LoginPage> {
   void _handleLogin(String username, String password) {
     if (AuthStorage.checkLogin(username, password)) {
       context.read<AuthProvider>().login(username);
+
+      TaskStorage.addCategory(
+        Category("name", Colors.orange, Icons.abc),
+        context,
+      );
+
+      TaskStorage.addTask(
+        Task(
+          "title",
+          0,
+          description: "dsada",
+          isCompleted: false,
+          priority: Priority.high,
+        ),
+        context,
+      );
+
+      TaskStorage.addSubTask(
+        0,
+        Task(
+          "title",
+          0,
+          description: "dsada",
+          isCompleted: false,
+          priority: Priority.high,
+        ),
+        context,
+      );
+
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const Home()),
@@ -172,6 +202,8 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    AuthStorage.addUser("aa", "aa");
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: Center(

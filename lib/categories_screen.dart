@@ -9,7 +9,7 @@ class CategoriesScreen extends StatefulWidget {
 }
 
 class _CategoriesScreenState extends State<CategoriesScreen> {
-  final _availableColors = [
+  final _colors = [
     Colors.blue,
     Colors.green,
     Colors.red,
@@ -20,7 +20,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
     Colors.amber,
   ];
 
-  final _availableIcons = [
+  final _icons = [
     Icons.work,
     Icons.person,
     Icons.shopping_cart,
@@ -45,65 +45,41 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
         onPressed: () => _showCategoryDialog(context),
         child: const Icon(Icons.add),
       ),
-      body: categories.isEmpty
-          ? const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+      body: ListView.builder(
+        padding: const EdgeInsets.all(8),
+        itemCount: categories.length,
+        itemBuilder: (context, index) {
+          final category = categories[index];
+          final inUse = TaskStorage.isCategoryInUse(category.id!, context);
+
+          return Card(
+            margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+            child: ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(category.iconData, color: category.color),
+              ),
+              title: Text(category.name),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.category_outlined, size: 64, color: Colors.grey),
-                  SizedBox(height: 16),
-                  Text(
-                    'Nenhuma categoria cadastrada',
-                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                  IconButton(
+                    icon: const Icon(Icons.edit),
+                    onPressed: () => _showCategoryDialog(context, category),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete),
+                    onPressed: () => _deleteCategory(context, category.id!),
                   ),
                 ],
               ),
-            )
-          : ListView.builder(
-              padding: const EdgeInsets.all(8),
-              itemCount: categories.length,
-              itemBuilder: (context, index) {
-                final category = categories[index];
-                final inUse = TaskStorage.isCategoryInUse(
-                  category.id!,
-                  context,
-                );
-
-                return Card(
-                  margin: const EdgeInsets.symmetric(
-                    vertical: 4,
-                    horizontal: 8,
-                  ),
-                  child: ListTile(
-                    leading: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: category.color.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Icon(category.iconData, color: category.color),
-                    ),
-                    title: Text(category.name),
-                    subtitle: inUse ? const Text('Em uso') : null,
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.edit),
-                          onPressed: () =>
-                              _showCategoryDialog(context, category),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.delete),
-                          onPressed: () =>
-                              _deleteCategory(context, category.id!),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
             ),
+          );
+        },
+      ),
     );
   }
 
@@ -112,9 +88,9 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
     final nameController = TextEditingController(text: category?.name);
     Color selectedColor = category?.color ?? Colors.blue;
     IconData selectedIcon =
-        (category != null && _availableIcons.contains(category.iconData))
+        (category != null && _icons.contains(category.iconData))
         ? category.iconData
-        : _availableIcons.first;
+        : _icons[0];
 
     showDialog(
       context: context,
@@ -142,7 +118,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
-                  children: _availableColors.map((color) {
+                  children: _colors.map((color) {
                     final isSelected = selectedColor == color;
                     return GestureDetector(
                       onTap: () => setDialogState(() => selectedColor = color),
@@ -172,7 +148,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
-                  children: _availableIcons.map((icon) {
+                  children: _icons.map((icon) {
                     final isSelected = selectedIcon == icon;
                     return GestureDetector(
                       onTap: () => setDialogState(() => selectedIcon = icon),
