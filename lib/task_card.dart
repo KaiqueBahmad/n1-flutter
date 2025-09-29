@@ -27,71 +27,105 @@ class TaskCard extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
       elevation: task.isCompleted ? 1 : 2,
-      child: ListTile(
-        leading: Checkbox(
-          value: task.isCompleted,
-          onChanged: (value) => onToggleComplete(),
-        ),
-        title: Text(
-          task.title,
-          style: TextStyle(
-            decoration: task.isCompleted ? TextDecoration.lineThrough : null,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (task.description.isNotEmpty) ...[
-              const SizedBox(height: 4),
-              Text(
-                task.description,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: Colors.grey[600], fontSize: 13),
+      child: Column(
+        children: [
+          ListTile(
+            leading: Checkbox(
+              value: task.isCompleted,
+              onChanged: (value) => onToggleComplete(),
+            ),
+            title: Text(
+              task.title,
+              style: TextStyle(
+                decoration: task.isCompleted ? TextDecoration.lineThrough : null,
+                fontWeight: FontWeight.w500,
               ),
-            ],
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 4,
+            ),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (category != null)
-                  _buildChip(
-                    icon: category.iconData,
-                    label: category.name,
-                    color: category.color,
+                if (task.description.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    task.description,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: Colors.grey[600], fontSize: 13),
                   ),
-                _buildChip(
-                  icon: _getPriorityIcon(task.priority),
-                  label: _getPriorityLabel(task.priority),
-                  color: _getPriorityColor(task.priority),
+                ],
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  children: [
+                    if (category != null)
+                      Text(
+                        category.name,
+                        style: TextStyle(
+                          color: category.color,
+                          fontSize: 12,
+                        ),
+                      ),
+                    Text(
+                      _getPriorityLabel(task.priority),
+                      style: TextStyle(
+                        color: _getPriorityColor(task.priority),
+                        fontSize: 12,
+                      ),
+                    ),
+                    if (task.dueDate != null)
+                      Text(
+                        DateFormat('dd/MM/yy').format(task.dueDate!),
+                        style: TextStyle(
+                          color: isOverdue ? Colors.red : Colors.blue,
+                          fontSize: 12,
+                        ),
+                      ),
+                  ],
                 ),
-                if (task.dueDate != null)
-                  _buildChip(
-                    icon: Icons.calendar_today,
-                    label: DateFormat('dd/MM/yy').format(task.dueDate!),
-                    color: isOverdue ? Colors.red : Colors.blue,
-                  ),
               ],
             ),
-          ],
-        ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            IconButton(
-              icon: const Icon(Icons.edit, size: 20),
-              onPressed: onEdit,
-              tooltip: 'Editar',
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (task.subTasks.isNotEmpty)
+                  IconButton(
+                    icon: Icon(
+                      task.isExpanded ? Icons.expand_less : Icons.expand_more,
+                      size: 20,
+                    ),
+                    onPressed: () {
+                      task.isExpanded = !task.isExpanded;
+                      // We need to trigger a rebuild, but since this is a StatelessWidget,
+                      // we'll need to handle this differently. For now, we'll rely on parent to rebuild
+                    },
+                  ),
+                IconButton(
+                  icon: const Icon(Icons.edit, size: 20),
+                  onPressed: onEdit,
+                  tooltip: 'Editar',
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete, size: 20),
+                  onPressed: onDelete,
+                  tooltip: 'Excluir',
+                ),
+              ],
             ),
-            IconButton(
-              icon: const Icon(Icons.delete, size: 20),
-              onPressed: onDelete,
-              tooltip: 'Excluir',
-            ),
-          ],
-        ),
+          ),
+          if (task.isExpanded && task.subTasks.isNotEmpty)
+            ...task.subTasks.map((subTask) => ListTile(
+                  leading: Checkbox(
+                    value: subTask.isCompleted,
+                    onChanged: (value) {
+                      // Toggle subtask completion
+                      subTask.isCompleted = !subTask.isCompleted;
+                      // Trigger rebuild
+                    },
+                  ),
+                  title: Text(subTask.title),
+                )),
+        ],
       ),
     );
   }

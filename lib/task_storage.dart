@@ -25,6 +25,7 @@ class Task {
   Priority priority;
   bool isCompleted;
   List<Task> subTasks = [];
+  bool isExpanded = false;
 
   Task(
     this.title,

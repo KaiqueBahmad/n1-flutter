@@ -136,15 +136,15 @@ class _TasksScreenState extends State<TasksScreen> {
                   items: const [
                     DropdownMenuItem(
                       value: Priority.low,
-                      child: Text('🟢 Baixa'),
+                      child: Text('Baixa'),
                     ),
                     DropdownMenuItem(
                       value: Priority.normal,
-                      child: Text('🟡 Normal'),
+                      child: Text('Normal'),
                     ),
                     DropdownMenuItem(
                       value: Priority.high,
-                      child: Text('🔴 Alta'),
+                      child: Text('Alta'),
                     ),
                   ],
                   onChanged: (value) {
@@ -178,20 +178,20 @@ class _TasksScreenState extends State<TasksScreen> {
                               ? _dateFormat.format(selectedDueDate!)
                               : 'Selecionar data',
                         ),
-                        const Spacer(),
-                        if (selectedDueDate != null)
-                          IconButton(
-                            icon: const Icon(Icons.clear, size: 20),
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                            onPressed: () {
-                              setDialogState(() => selectedDueDate = null);
-                            },
-                          ),
                       ],
                     ),
                   ),
                 ),
+                if (isEditing) ...[
+                  const SizedBox(height: 16),
+                  FilledButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _showSubTaskDialog(context, task!);
+                    },
+                    child: const Text('Adicionar Subtarefa'),
+                  ),
+                ],
               ],
             ),
           ),
@@ -230,6 +230,115 @@ class _TasksScreenState extends State<TasksScreen> {
                 }
               },
               child: Text(isEditing ? 'Salvar' : 'Adicionar'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showSubTaskDialog(BuildContext context, Task parentTask) {
+    final titleController = TextEditingController();
+    final descriptionController = TextEditingController();
+    final categories = TaskStorage.getCategories(context);
+    int selectedCategoryId = categories.first.id!;
+    Priority selectedPriority = Priority.normal;
+    DateTime? selectedDueDate;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Nova Subtarefa'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: titleController,
+                  decoration: const InputDecoration(
+                    labelText: 'Título',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: descriptionController,
+                  decoration: const InputDecoration(
+                    labelText: 'Descrição (opcional)',
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: 3,
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<int>(
+                  value: selectedCategoryId,
+                  decoration: const InputDecoration(
+                    labelText: 'Categoria',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: categories.map((cat) {
+                    return DropdownMenuItem(
+                      value: cat.id,
+                      child: Text(cat.name),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setDialogState(() => selectedCategoryId = value!);
+                  },
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<Priority>(
+                  value: selectedPriority,
+                  decoration: const InputDecoration(
+                    labelText: 'Prioridade',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: const [
+                    DropdownMenuItem(
+                      value: Priority.low,
+                      child: Text('Baixa'),
+                    ),
+                    DropdownMenuItem(
+                      value: Priority.normal,
+                      child: Text('Normal'),
+                    ),
+                    DropdownMenuItem(
+                      value: Priority.high,
+                      child: Text('Alta'),
+                    ),
+                  ],
+                  onChanged: (value) {
+                    setDialogState(() => selectedPriority = value!);
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () {
+                if (titleController.text.isNotEmpty) {
+                  TaskStorage.addSubTask(
+                    parentTask.id!,
+                    Task(
+                      titleController.text,
+                      selectedCategoryId,
+                      description: descriptionController.text,
+                      priority: selectedPriority,
+                      dueDate: selectedDueDate,
+                    ),
+                    context,
+                  );
+                  setState(() {});
+                  Navigator.pop(context);
+                }
+              },
+              child: const Text('Adicionar'),
             ),
           ],
         ),
