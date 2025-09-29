@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:n1/auth_provider.dart';
+import 'package:n1/home.dart';
 import 'package:n1/storage.dart';
+import 'package:provider/provider.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
@@ -23,17 +26,23 @@ class _LoginPageState extends State<LoginPage> {
     }
 
     if (isLogin) {
-      Storage.checkLogin(username, password)
-          ? Navigator.pushReplacementNamed(context, '/home')
-          : showMessage('Usuário ou senha incorretos');
+      if (Storage.checkLogin(username, password)) {
+        context.read<AuthProvider>().login(username);
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const Home()),
+        );
+      } else {
+        showMessage('Usuário ou senha incorretos');
+      }
     } else {
       Storage.userExists(username)
           ? showMessage('Usuário já existe')
-          : _createUser(username, password);
+          : createUser(username, password);
     }
   }
 
-  void _createUser(String username, String password) {
+  void createUser(String username, String password) {
     Storage.addUser(username, password);
     showMessage('Usuário cadastrado!');
     setState(() {
