@@ -19,143 +19,81 @@ class TaskCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final category = TaskStorage.getCategoryById(task.categoryId, context);
-    final isOverdue =
-        task.dueDate != null &&
+    final isOverdue = task.dueDate != null &&
         task.dueDate!.isBefore(DateTime.now()) &&
         !task.isCompleted;
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-      elevation: task.isCompleted ? 1 : 2,
-      child: Column(
-        children: [
-          ListTile(
-            leading: Checkbox(
-              value: task.isCompleted,
-              onChanged: (value) => onToggleComplete(),
-            ),
-            title: Text(
-              task.title,
-              style: TextStyle(
-                decoration: task.isCompleted ? TextDecoration.lineThrough : null,
-                fontWeight: FontWeight.w500,
+      child: ListTile(
+        leading: Checkbox(
+          value: task.isCompleted,
+          onChanged: (value) => onToggleComplete(),
+        ),
+        title: Text(
+          task.title,
+          style: TextStyle(
+            decoration: task.isCompleted ? TextDecoration.lineThrough : null,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (task.description.isNotEmpty) 
+              Text(
+                task.description,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: Colors.grey[600], fontSize: 13),
               ),
-            ),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            const SizedBox(height: 4),
+            Row(
               children: [
-                if (task.description.isNotEmpty) ...[
-                  const SizedBox(height: 4),
+                if (category != null)
                   Text(
-                    task.description,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: Colors.grey[600], fontSize: 13),
-                  ),
-                ],
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 4,
-                  children: [
-                    if (category != null)
-                      Text(
-                        category.name,
-                        style: TextStyle(
-                          color: category.color,
-                          fontSize: 12,
-                        ),
-                      ),
-                    Text(
-                      _getPriorityLabel(task.priority),
-                      style: TextStyle(
-                        color: _getPriorityColor(task.priority),
-                        fontSize: 12,
-                      ),
+                    category.name,
+                    style: TextStyle(
+                      color: category.color,
+                      fontSize: 12,
                     ),
-                    if (task.dueDate != null)
-                      Text(
-                        DateFormat('dd/MM/yy').format(task.dueDate!),
-                        style: TextStyle(
-                          color: isOverdue ? Colors.red : Colors.blue,
-                          fontSize: 12,
-                        ),
-                      ),
-                  ],
+                  ),
+                if (category != null) const SizedBox(width: 8),
+                Text(
+                  _getPriorityLabel(task.priority),
+                  style: TextStyle(
+                    color: _getPriorityColor(task.priority),
+                    fontSize: 12,
+                  ),
                 ),
+                if (task.dueDate != null) const SizedBox(width: 8),
+                if (task.dueDate != null)
+                  Text(
+                    DateFormat('dd/MM/yy').format(task.dueDate!),
+                    style: TextStyle(
+                      color: isOverdue ? Colors.red : Colors.blue,
+                      fontSize: 12,
+                    ),
+                  ),
               ],
             ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (task.subTasks.isNotEmpty)
-                  IconButton(
-                    icon: Icon(
-                      task.isExpanded ? Icons.expand_less : Icons.expand_more,
-                      size: 20,
-                    ),
-                    onPressed: () {
-                      task.isExpanded = !task.isExpanded;
-                      // We need to trigger a rebuild, but since this is a StatelessWidget,
-                      // we'll need to handle this differently. For now, we'll rely on parent to rebuild
-                    },
-                  ),
-                IconButton(
-                  icon: const Icon(Icons.edit, size: 20),
-                  onPressed: onEdit,
-                  tooltip: 'Editar',
-                ),
-                IconButton(
-                  icon: const Icon(Icons.delete, size: 20),
-                  onPressed: onDelete,
-                  tooltip: 'Excluir',
-                ),
-              ],
+          ],
+        ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.edit, size: 20),
+              onPressed: onEdit,
+              tooltip: 'Editar',
             ),
-          ),
-          if (task.isExpanded && task.subTasks.isNotEmpty)
-            ...task.subTasks.map((subTask) => ListTile(
-                  leading: Checkbox(
-                    value: subTask.isCompleted,
-                    onChanged: (value) {
-                      // Toggle subtask completion
-                      subTask.isCompleted = !subTask.isCompleted;
-                      // Trigger rebuild
-                    },
-                  ),
-                  title: Text(subTask.title),
-                )),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildChip({
-    required IconData icon,
-    required String label,
-    required Color color,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: color),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(
-              color: color,
-              fontWeight: FontWeight.w600,
-              fontSize: 12,
+            IconButton(
+              icon: const Icon(Icons.delete, size: 20),
+              onPressed: onDelete,
+              tooltip: 'Excluir',
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -168,17 +106,6 @@ class TaskCard extends StatelessWidget {
         return Colors.orange;
       case Priority.high:
         return Colors.red;
-    }
-  }
-
-  IconData _getPriorityIcon(Priority priority) {
-    switch (priority) {
-      case Priority.low:
-        return Icons.arrow_downward;
-      case Priority.normal:
-        return Icons.remove;
-      case Priority.high:
-        return Icons.arrow_upward;
     }
   }
 
