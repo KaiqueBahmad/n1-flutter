@@ -106,6 +106,14 @@ class TaskStorage {
     }
   }
 
+  static void toggleSubTaskCompletion(int parentTaskId, int subTaskIndex, BuildContext context) {
+    final parentTask = getTaskById(parentTaskId, context);
+    if (parentTask != null && parentTask.subTasks.length > subTaskIndex) {
+      parentTask.subTasks[subTaskIndex].isCompleted = 
+          !parentTask.subTasks[subTaskIndex].isCompleted;
+    }
+  }
+
   static void addSubTask(int parentTaskId, Task subTask, BuildContext context) {
     final parentTask = getTaskById(parentTaskId, context);
     if (parentTask != null) {

@@ -61,6 +61,10 @@ class _TasksScreenState extends State<TasksScreen> {
                   },
                   onEdit: () => _showTaskDialog(context, tasks[index]),
                   onDelete: () => _confirmDelete(context, tasks[index].id!),
+                  onToggleSubTaskComplete: (parentTaskId, subTaskIndex) {
+                    TaskStorage.toggleSubTaskCompletion(parentTaskId, subTaskIndex, context);
+                    setState(() {});
+                  },
                 );
               },
             ),
