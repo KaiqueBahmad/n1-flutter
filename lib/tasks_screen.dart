@@ -35,39 +35,29 @@ class _TasksScreenState extends State<TasksScreen> {
         },
         child: const Icon(Icons.add),
       ),
-      body: tasks.isEmpty
-          ? const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.task_outlined, size: 64, color: Colors.grey),
-                  SizedBox(height: 16),
-                  Text(
-                    'Nenhuma tarefa cadastrada',
-                    style: TextStyle(fontSize: 16, color: Colors.grey),
-                  ),
-                ],
-              ),
-            )
-          : ListView.builder(
-              padding: const EdgeInsets.all(8),
-              itemCount: tasks.length,
-              itemBuilder: (context, index) {
-                return TaskCard(
-                  task: tasks[index],
-                  onToggleComplete: () {
-                    TaskStorage.toggleTaskCompletion(tasks[index].id!, context);
-                    setState(() {});
-                  },
-                  onEdit: () => _showTaskDialog(context, tasks[index]),
-                  onDelete: () => _confirmDelete(context, tasks[index].id!),
-                  onToggleSubTaskComplete: (parentTaskId, subTaskIndex) {
-                    TaskStorage.toggleSubTaskCompletion(parentTaskId, subTaskIndex, context);
-                    setState(() {});
-                  },
-                );
-              },
-            ),
+      body: ListView.builder(
+        padding: const EdgeInsets.all(8),
+        itemCount: tasks.length,
+        itemBuilder: (context, index) {
+          return TaskCard(
+            task: tasks[index],
+            onToggleComplete: () {
+              TaskStorage.toggleTaskCompletion(tasks[index].id!, context);
+              setState(() {});
+            },
+            onEdit: () => _showTaskDialog(context, tasks[index]),
+            onDelete: () => _confirmDelete(context, tasks[index].id!),
+            onToggleSubTaskComplete: (parentTaskId, subTaskIndex) {
+              TaskStorage.toggleSubTaskCompletion(
+                parentTaskId,
+                subTaskIndex,
+                context,
+              );
+              setState(() {});
+            },
+          );
+        },
+      ),
     );
   }
 
@@ -138,18 +128,12 @@ class _TasksScreenState extends State<TasksScreen> {
                     border: OutlineInputBorder(),
                   ),
                   items: const [
-                    DropdownMenuItem(
-                      value: Priority.low,
-                      child: Text('Baixa'),
-                    ),
+                    DropdownMenuItem(value: Priority.low, child: Text('Baixa')),
                     DropdownMenuItem(
                       value: Priority.normal,
                       child: Text('Normal'),
                     ),
-                    DropdownMenuItem(
-                      value: Priority.high,
-                      child: Text('Alta'),
-                    ),
+                    DropdownMenuItem(value: Priority.high, child: Text('Alta')),
                   ],
                   onChanged: (value) {
                     setDialogState(() => selectedPriority = value!);
@@ -299,18 +283,12 @@ class _TasksScreenState extends State<TasksScreen> {
                     border: OutlineInputBorder(),
                   ),
                   items: const [
-                    DropdownMenuItem(
-                      value: Priority.low,
-                      child: Text('Baixa'),
-                    ),
+                    DropdownMenuItem(value: Priority.low, child: Text('Baixa')),
                     DropdownMenuItem(
                       value: Priority.normal,
                       child: Text('Normal'),
                     ),
-                    DropdownMenuItem(
-                      value: Priority.high,
-                      child: Text('Alta'),
-                    ),
+                    DropdownMenuItem(value: Priority.high, child: Text('Alta')),
                   ],
                   onChanged: (value) {
                     setDialogState(() => selectedPriority = value!);
