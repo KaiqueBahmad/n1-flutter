@@ -26,110 +26,120 @@ class TaskCard extends StatelessWidget {
         task.dueDate!.isBefore(DateTime.now()) &&
         !task.isCompleted;
 
+    List<Widget> columnChildren = [
+      ListTile(
+        leading: Checkbox(
+          value: task.isCompleted,
+          onChanged: (value) => onToggleComplete(),
+        ),
+        title: Text(
+          task.title,
+          style: TextStyle(
+            decoration: task.isCompleted ? TextDecoration.lineThrough : null,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        subtitle: _buildTaskInfo(category, isOverdue),
+        trailing: _buildActionButtons(),
+      ),
+    ];
+
+    columnChildren.addAll(_buildSubTasks());
+
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-      child: Column(
-        children: [
-          // Parte principal da tarefa
-          ListTile(
-            leading: Checkbox(
-              value: task.isCompleted,
-              onChanged: (value) => onToggleComplete(),
-            ),
-            title: Text(
-              task.title,
-              style: TextStyle(
-                decoration: task.isCompleted
-                    ? TextDecoration.lineThrough
-                    : null,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            subtitle: _buildTaskInfo(category, isOverdue),
-            trailing: _buildActionButtons(),
-          ),
-          // Subtasks
-          if (task.subTasks.isNotEmpty) ..._buildSubTasks(),
-        ],
-      ),
+      child: Column(children: columnChildren),
     );
   }
 
   Widget _buildTaskInfo(Category? category, bool isOverdue) {
+    List<Widget> children = [];
+
+    if (task.description.isNotEmpty) {
+      children.add(
+        Text(
+          task.description,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(color: Colors.grey[600], fontSize: 13),
+        ),
+      );
+    }
+
+    children.add(const SizedBox(height: 4));
+
+    List<Widget> wrapChildren = [];
+    if (category != null) {
+      wrapChildren.add(
+        Text(
+          category.name,
+          style: TextStyle(color: category.color, fontSize: 12),
+        ),
+      );
+    }
+    wrapChildren.add(
+      Text(
+        _getPriorityLabel(task.priority),
+        style: TextStyle(color: _getPriorityColor(task.priority), fontSize: 12),
+      ),
+    );
+
+    children.add(Wrap(spacing: 8, children: wrapChildren));
+
+    // Data de vencimento destacada
+    if (task.dueDate != null) {
+      children.add(const SizedBox(height: 6));
+
+      List<Widget> dueDateChildren = [
+        Icon(
+          Icons.calendar_today,
+          size: 14,
+          color: isOverdue ? Colors.red : Colors.blue,
+        ),
+        const SizedBox(width: 4),
+        Text(
+          'Vence: ${DateFormat('dd/MM/yyyy').format(task.dueDate!)}',
+          style: TextStyle(
+            color: isOverdue ? Colors.red : Colors.blue,
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ];
+
+      if (isOverdue) {
+        dueDateChildren.addAll([
+          const SizedBox(width: 4),
+          Text(
+            '(Atrasada)',
+            style: TextStyle(
+              color: Colors.red,
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ]);
+      }
+
+      children.add(
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: isOverdue ? Colors.red.shade50 : Colors.blue.shade50,
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(
+              color: isOverdue ? Colors.red : Colors.blue,
+              width: 1,
+            ),
+          ),
+          child: Row(mainAxisSize: MainAxisSize.min, children: dueDateChildren),
+        ),
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (task.description.isNotEmpty)
-          Text(
-            task.description,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(color: Colors.grey[600], fontSize: 13),
-          ),
-        const SizedBox(height: 4),
-        Wrap(
-          spacing: 8,
-          children: [
-            if (category != null)
-              Text(
-                category.name,
-                style: TextStyle(color: category.color, fontSize: 12),
-              ),
-            Text(
-              _getPriorityLabel(task.priority),
-              style: TextStyle(
-                color: _getPriorityColor(task.priority),
-                fontSize: 12,
-              ),
-            ),
-          ],
-        ),
-        // Data de vencimento destacada
-        if (task.dueDate != null) ...[
-          const SizedBox(height: 6),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: isOverdue ? Colors.red.shade50 : Colors.blue.shade50,
-              borderRadius: BorderRadius.circular(4),
-              border: Border.all(
-                color: isOverdue ? Colors.red : Colors.blue,
-                width: 1,
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.calendar_today,
-                  size: 14,
-                  color: isOverdue ? Colors.red : Colors.blue,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  'Vence: ${DateFormat('dd/MM/yyyy').format(task.dueDate!)}',
-                  style: TextStyle(
-                    color: isOverdue ? Colors.red : Colors.blue,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                if (isOverdue) ...[
-                  const SizedBox(width: 4),
-                  Text(
-                    '(Atrasada)',
-                    style: TextStyle(
-                      color: Colors.red,
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ],
-      ],
+      children: children,
     );
   }
 
@@ -147,40 +157,44 @@ class TaskCard extends StatelessWidget {
   }
 
   List<Widget> _buildSubTasks() {
-    return task.subTasks.asMap().entries.map((entry) {
-      final index = entry.key;
-      final subTask = entry.value;
+    List<Widget> subTaskWidgets = [];
 
-      return Padding(
-        padding: const EdgeInsets.only(left: 16.0, right: 8.0, bottom: 4.0),
-        child: ListTile(
-          dense: true,
-          leading: Checkbox(
-            value: subTask.isCompleted,
-            onChanged: (value) {
-              onToggleSubTaskComplete?.call(task.id!, index);
-            },
-          ),
-          title: Text(
-            subTask.title,
-            style: TextStyle(
-              fontSize: 14,
-              decoration: subTask.isCompleted
-                  ? TextDecoration.lineThrough
-                  : null,
+    for (var i = 0; i < task.subTasks.length; i++) {
+      final subTask = task.subTasks[i];
+      subTaskWidgets.add(
+        Padding(
+          padding: const EdgeInsets.only(left: 16.0, right: 8.0, bottom: 4.0),
+          child: ListTile(
+            dense: true,
+            leading: Checkbox(
+              value: subTask.isCompleted,
+              onChanged: (value) {
+                onToggleSubTaskComplete?.call(task.id!, i);
+              },
             ),
+            title: Text(
+              subTask.title,
+              style: TextStyle(
+                fontSize: 14,
+                decoration: subTask.isCompleted
+                    ? TextDecoration.lineThrough
+                    : null,
+              ),
+            ),
+            subtitle: subTask.description.isNotEmpty
+                ? Text(
+                    subTask.description,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                  )
+                : null,
           ),
-          subtitle: subTask.description.isNotEmpty
-              ? Text(
-                  subTask.description,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                )
-              : null,
         ),
       );
-    }).toList();
+    }
+
+    return subTaskWidgets;
   }
 
   Color _getPriorityColor(Priority priority) {
